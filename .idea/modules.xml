@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/nsa2-apt-example.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/nsa2-apt-example.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/nsa2-apt-processor-example/nsa2-apt-example.nsa2-apt-processor-example.main.iml" filepath="$PROJECT_DIR$/.idea/modules/nsa2-apt-processor-example/nsa2-apt-example.nsa2-apt-processor-example.main.iml" />
+    </modules>
+  </component>
+</project>

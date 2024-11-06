@@ -1,0 +1,49 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.alexamy.example'
+version = '1.0-SNAPSHOT'
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', 'src/generated/java']
+        }
+    }
+    generated {
+        java {
+            srcDirs = ['src/generated/java']
+        }
+    }
+}
+
+//configurations {
+//    compileOnly {
+//        extendsFrom annotationProcessor
+//    }
+//}
+
+dependencies {
+    implementation 'com.google.auto.service:auto-service:1.1.1'
+    annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+//compileJava {
+//    options.annotationProcessorPath = configurations.annotationProcessor
+//}
+
+test {
+    useJUnitPlatform()
+}
