@@ -36,6 +36,8 @@ sourceSets {
 dependencies {
     implementation 'com.google.auto.service:auto-service:1.1.1'
     annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
+//    implementation("gg.jte:jte:3.1.13")
+    implementation 'org.freemarker:freemarker:2.3.33'
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }

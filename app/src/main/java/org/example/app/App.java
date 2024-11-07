@@ -4,16 +4,15 @@
 package org.example.app;
 
 import org.example.model.User;
-import org.example.model.UserBuilder;
 
 public class App {
     public static void main(String[] args) {
-//        User user = new User();
+        User john = new User("John", 30);
 
-        User john = UserBuilder.builder()
-                .name("John")
-                .age(30)
-                .build();
+//        User john = UserBuilder.builder()
+//                .name("John")
+//                .age(30)
+//                .build();
 
         System.out.println("name: " + john.getName());
 
