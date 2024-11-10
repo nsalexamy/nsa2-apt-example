@@ -10,3 +10,19 @@ There are two modules in this project:
 For more information, refer to the link below:
 
 * link:./docs/index.adoc[Java Annotation Processor Tool for Code Generation]
+
+== Quick Start
+
+To build the project, run the following command:
+
+[source,shell]
+----
+$ ./gradlew clean build
+----
+
+To run the project, run the following command:
+
+[source,shell]
+----
+$ ./gradlew app:run
+----
