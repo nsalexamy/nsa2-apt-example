@@ -11,11 +11,12 @@ public class App {
 //        User user = new User();
 
         User john = UserBuilder.builder()
-                .name("John")
-                .age(30)
+                .username("John")
+                .password("password")
+                .enabled(true)
                 .build();
 
-        System.out.println("name: " + john.getName());
+        System.out.println("user: " + john.toString());
 
     }
 }

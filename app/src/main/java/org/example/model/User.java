@@ -1,35 +1,41 @@
 package org.example.model;
 
-import com.alexamy.nsa2.example.apt.annotations.GenerateBuilder;
+import com.alexamy.nsa2.example.apt.annotations.Nsa2Builder;
 
-@GenerateBuilder
+@Nsa2Builder
 public class User {
-    private final String name;
-    private final int age;
+    private final String username;
+    private final String password;
+    private final boolean enabled;
 
     public User() {
-        this.name = "";
-        this.age = 0;
+        this("", "", false);
     }
 
-    public User(String name, int age) {
-        this.name = name;
-        this.age = age;
+    public User(String username, String password, boolean enabled) {
+        this.username = username;
+        this.password = password;
+        this.enabled = enabled;
     }
 
-    public String getName() {
-        return name;
+    public String getUsername() {
+        return username;
     }
 
-    public int getAge() {
-        return age;
+    public String getPassword() {
+        return password;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 
     @Override
     public String toString() {
         return "User{" +
-                "name='" + name + '\'' +
-                ", age=" + age +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", enabled=" + enabled +
                 '}';
     }
 }

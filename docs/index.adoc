@@ -4,6 +4,13 @@
 
 == Create a new project
 
+We are going to create a new project using Gradle. The project will have two modules: app and nsa2-apt-processor-example.
+
+* nsa2-apt-processor-example: This module will have the annotation processor.
+* app: This module will have the main code using the annotation processor.
+
+First, create a new project using the following command.
+
 [source,shell]
 ----
 $ mkdir nsa2-apt-example
@@ -52,16 +59,325 @@ Learn more about Gradle by exploring our Samples at https://docs.gradle.org/8.10
 
 == Clean up project
 
+Because 'gradle init' command generates modules named utilities and list, we need to remove them. And app module has the main code using utilities and list modules. So, for this example, we will keep the App class in the app module but clean up the source code from App class.
+
 . Remove utilities, list Module
+. Refactor App class in app module
+. Remove test code in app module
 
 image::remove-utilities-module.png[]
 
-== Add module named nsa2-apt-processor-example
+Repeat the same steps for the list module.
 
 === app module
 
-.build.gradle of app
+From app module, remove source codes related to utilities and list modules.
+
+
+== Add module named nsa2-apt-processor-example
+
+To implement the annotation processor, we need to add the module named nsa2-apt-processor-example to the project.
+
+Add a new module named nsa2-apt-processor-example to the project.
+
+In this module, we will create an annotation processor that generates the builder class for any POJO class annotated with @Nsa2Builder.
+
+
+=== build.gradle
+
+I added the following dependencies to the build.gradle file of the nsa2-apt-processor-example module. Google auto-service is commonly used to generate the META-INF/services/javax.annotation.processing.Processor file. We will have a look at the javax.annotation.processing.Processor file later.
+
+. build.gradle - dependencies
+[source,groovy]
+----
+dependencies {
+    implementation 'com.google.auto.service:auto-service:1.1.1'
+    annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+----
+
+=== Nsa2Builder annotation
+
+First, we need an annotation class named Nsa2Builder.
+
+.Nsa2Builder.java
+[source,java]
+----
+@Retention(RetentionPolicy.SOURCE)
+@Target(ElementType.TYPE)
+public @interface Nsa2Builder {
+}
+----
+
+@Nsa2Builder annotation is used to mark the POJO class for which we want to generate the builder class.
+
+=== BuilderProcessor
+
+Next, we need to create the annotation processor class named BuilderProcessor.
+
+. BuilderProcessor.java
+[source,java]
+----
+@AutoService(Processor.class)
+@SupportedAnnotationTypes("com.alexamy.nsa2.example.apt.annotations.Nsa2Builder")
+@SupportedSourceVersion(SourceVersion.RELEASE_21)
+public class BuilderProcessor extends AbstractProcessor {
+    @Override
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        //System.out.println("processing...");
+        for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(Nsa2Builder.class)) {
+            if (annotatedElement.getKind() != ElementKind.CLASS) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Can be applied to class.");
+                return true; // Exit processing
+            }
+            TypeElement typeElement = (TypeElement) annotatedElement;
+            String className = typeElement.getSimpleName() + "Builder";
+            String packageName = processingEnv.getElementUtils().getPackageOf(typeElement).toString();
+
+            try {
+                JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(packageName + "." + className);
+                try (Writer writer = builderFile.openWriter()) {
+                    writer.write("package " + packageName + ";\n");
+                    writer.write("public class " + className + " {\n");
+
+                    List<? extends Element> allMembers = processingEnv.getElementUtils().getAllMembers(typeElement);
+
+                    List<? extends  Element> allFields = allMembers.stream().filter(element -> element.getKind() == ElementKind.FIELD).toList();
+
+
+                    // Add fields
+                    for(Element element : allFields) {
+                        writer.write("    private " + element.asType() + " " + element.getSimpleName() + ";\n\n");
+                    }
+
+                    // builder method
+                    writer.write("    public static " + className + " builder() {\n");
+                    writer.write("        return new " + className + "();\n");
+                    writer.write("    }\n\n");
+
+                    // setter methods
+                    for(Element element : allFields) {
+                        writer.write("    public " + className + " " + element.getSimpleName() + "(" + element.asType() + " " + element.getSimpleName() + ") {\n");
+                        writer.write("        this." + element.getSimpleName() + " = " + element.getSimpleName() + ";\n");
+                        writer.write("        return this;\n");
+                        writer.write("    }\n\n");
+                    }
+
+                    // username, age
+                    String args = allFields.stream().map(Element::getSimpleName).collect(Collectors.joining(", "));
+
+                    // build method
+                    writer.write("    public " + typeElement.getSimpleName() + " build() {\n");
+                    writer.write("        " + typeElement.getSimpleName() + " " + typeElement.getSimpleName().toString().toLowerCase() + " = new " + typeElement.getSimpleName() + "(" + args + ");\n");
+                    writer.write("        return " + typeElement.getSimpleName().toString().toLowerCase() + ";\n");
+                    writer.write("    }\n");
+
+                    // End of class
+                    writer.write("}\n");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        //System.out.println("Processing complete.");
+        return true;
+    }
+}
+----
+
+This processor generates the builder class for the POJO class annotated with @Nsa2Builder. The builder class use the same package as the POJO class with Suffixed "Builder".
+
+If the POJO class fully qualified name is org.example.model.User, the builder class will be org.example.model.UserBuilder.
+
+To keep things simple, the generation logic is implemented within a single method called process. This process method is triggered by the compiler whenever the annotation processor is invoked.
+
+Later in this guide, we will see how to use FreeMarker template engine to generate the builder class.
+
+=== Build the project
+
+Now, build the project using the following command.
+
+[source,shell]
+----
+$ gradlew clean build
+----
+
+=== services/javax.annotation.processing.Processor
+
+After building the project, you can see the META-INF/services/javax.annotation.processing.Processor file in the nsa2-apt-processor-example module under the *build/classes/java/main/META-INF* directory.
+
+.javax.annotation.processing.Processor
+[source,text]
+----
+com.alexamy.nsa2.example.apt.processor.BuilderProcessor
+----
+
+This file is generated by the Google auto-service library. It contains the fully qualified name of the annotation processor class.
+
+== app module
+
+[NOTE]
+====
+Please note that Java Annotation Processors is not working in the same module where the annotation processor is defined. So, we need to create a separate module for the annotation processor.
+====
+
+=== build gradle
+
+.build.gradle
 [source,groovy]
 ----
 include::{projectdir}/app/build.gradle[]
 ----
+
+
+In the app module, we will create a POJO class named User and annotate it with @Nsa2Builder.
+
+.User.java
+[source,java]
+----
+@Nsa2Builder
+public class User {
+    private final String username;
+    private final String password;
+    private final boolean enabled;
+
+    public User() {
+        this("", "", false);
+    }
+
+    public User(String username, String password, boolean enabled) {
+        this.username = username;
+        this.password = password;
+        this.enabled = enabled;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", enabled=" + enabled +
+                '}';
+    }
+}
+----
+
+=== App.java
+
+In the App class, we will create an instance of the User class using the builder class.
+
+.App.java
+[source,java]
+----
+public class App {
+    public static void main(String[] args) {
+
+        User john = UserBuilder.builder()
+                .username("John")
+                .password("password")
+                .enabled(true)
+                .build();
+
+        System.out.println("user: " + john.toString());
+
+    }
+}
+----
+
+=== UserBuilder.java
+
+The UserBuilder class is generated by the annotation processor when building the project.
+
+The default directory for the generated source code is *build/generated/sources/annotationProcessor/java/main*.
+
+
+UserBuilder.java
+[source,java]
+----
+package org.example.model;
+public class UserBuilder {
+    private java.lang.String username;
+
+    private java.lang.String password;
+
+    private boolean enabled;
+
+    public static UserBuilder builder() {
+        return new UserBuilder();
+    }
+
+    public UserBuilder username(java.lang.String username) {
+        this.username = username;
+        return this;
+    }
+
+    public UserBuilder password(java.lang.String password) {
+        this.password = password;
+        return this;
+    }
+
+    public UserBuilder enabled(boolean enabled) {
+        this.enabled = enabled;
+        return this;
+    }
+
+    public User build() {
+        User user = new User(username, password, enabled);
+        return user;
+    }
+}
+
+----
+
+=== App.java
+
+In the App class, we will create an instance of the User class using the builder class.
+
+.App.java
+[source,java]
+----
+import org.example.model.User;
+import org.example.model.UserBuilder;
+
+public class App {
+    public static void main(String[] args) {
+//        User user = new User();
+
+        User john = UserBuilder.builder()
+                .username("John")
+                .password("password")
+                .enabled(true)
+                .build();
+
+        System.out.println("user: " + john.toString());
+
+    }
+}
+----
+
+=== Run the app module
+
+Now, run the app module using the following command.
+
+[source,shell]
+----
+$ ./gradlew app:run
+
+> Task :app:run
+user: User{username='John', password='password', enabled=true}
+----
+

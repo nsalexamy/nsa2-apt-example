@@ -1,6 +1,6 @@
 package com.alexamy.nsa2.example.apt.processor;
 
-import com.alexamy.nsa2.example.apt.annotations.GenerateBuilder;
+import com.alexamy.nsa2.example.apt.annotations.Nsa2Builder;
 import com.google.auto.service.AutoService;
 
 import javax.annotation.processing.*;
@@ -17,13 +17,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @AutoService(Processor.class)
-@SupportedAnnotationTypes("com.alexamy.nsa2.example.apt.annotations.GenerateBuilder")
+@SupportedAnnotationTypes("com.alexamy.nsa2.example.apt.annotations.Nsa2Builder")
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class BuilderProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         //System.out.println("processing...");
-        for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(GenerateBuilder.class)) {
+        for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(Nsa2Builder.class)) {
             if (annotatedElement.getKind() != ElementKind.CLASS) {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Can be applied to class.");
                 return true; // Exit processing
@@ -37,7 +37,7 @@ public class BuilderProcessor extends AbstractProcessor {
                 try (Writer writer = builderFile.openWriter()) {
                     writer.write("package " + packageName + ";\n");
                     writer.write("public class " + className + " {\n");
-                    // Add builder implementation here
+
                     List<? extends Element> allMembers = processingEnv.getElementUtils().getAllMembers(typeElement);
 
                     List<? extends  Element> allFields = allMembers.stream().filter(element -> element.getKind() == ElementKind.FIELD).toList();
