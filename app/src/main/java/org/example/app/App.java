@@ -8,7 +8,7 @@ import org.example.model.UserBuilder;
 
 public class App {
     public static void main(String[] args) {
-//        User user = new User();
+
 
         User john = UserBuilder.builder()
                 .username("John")

@@ -1,6 +1,12 @@
 = APT Example
 :projectdir: ..
+:processordir: {projectdir}/nsa2-apt-processor-example
+:appdir: {projectdir}/app
+
 :imagesdir: images
+:projectdir: ..
+:processor-sourcedir: {processordir}/src/main/java
+:processor-resourcesdir: {processordir}/src/main/resources
 
 == Create a new project
 
@@ -380,4 +386,117 @@ $ ./gradlew app:run
 > Task :app:run
 user: User{username='John', password='password', enabled=true}
 ----
+
+== Enhancements
+
+=== Using FreeMarker template engine
+
+To generate the builder class, we can use the FreeMarker template engine. This will make the code generation more readable and maintainable.
+
+Add the FreeMarker library to the nsa2-apt-processor-example module.
+
+. build.gradle - dependencies
+[source,groovy]
+----
+// omitted
+    implementation 'org.freemarker:freemarker:2.3.33'
+----
+
+==== freemarker/templates/builder.ftl
+
+Create a FreeMarker template file named builder.ftl in the resources directory of the nsa2-apt-processor-example module.
+
+
+.builder.ftl
+[source,text]
+----
+include::{processor-resourcesdir}/freemarker/templates/builder.ftl[]
+----
+
+==== FreeMarkerConfigurationSingleton.java
+
+When writing Spring Boot applications, we can use the FreeMarkerConfigurationFactoryBean class to configure the FreeMarker template engine. But in this example, we will use a singleton class to configure the FreeMarker template engine.
+
+. FreeMarkerConfigurationSingleton.java
+[source,java]
+----
+public class FreeMarkerConfigurationSingleton {
+
+    private static Configuration configuration;
+
+    private FreeMarkerConfigurationSingleton() {
+    }
+
+    public static Configuration getInstance() {
+        if (configuration == null) {
+            configuration = new Configuration(Configuration.VERSION_2_3_33);
+            configuration.setClassForTemplateLoading(FreeMarkerConfigurationSingleton.class, "/freemarker/templates");
+        }
+        return configuration;
+    }
+
+}
+----
+
+==== Update BuilderProcessor.java
+
+Update the BuilderProcessor class to use the FreeMarker template engine to generate the builder class.
+
+.BuilderProcessor.java
+[source,java]
+----
+@AutoService(Processor.class)
+@SupportedAnnotationTypes("com.alexamy.nsa2.example.apt.annotations.Nsa2Builder")
+@SupportedSourceVersion(SourceVersion.RELEASE_21)
+public class BuilderProcessor extends AbstractProcessor {
+    @Override
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        //System.out.println("processing...");
+        for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(Nsa2Builder.class)) {
+            if (annotatedElement.getKind() != ElementKind.CLASS) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Can be applied to class.");
+                return true; // Exit processing
+            }
+            TypeElement typeElement = (TypeElement) annotatedElement;
+
+
+            String builderClassName = typeElement.getSimpleName() + "Builder";
+//            String className = typeElement.getSimpleName().toString();
+            String packageName = processingEnv.getElementUtils().getPackageOf(typeElement).toString();
+
+            try {
+                JavaFileObject builderFile =
+                    processingEnv.getFiler().createSourceFile(packageName + "." + builderClassName);
+
+                try (Writer writer = builderFile.openWriter()) {
+
+                    List<? extends Element> allMembers = processingEnv.getElementUtils().getAllMembers(typeElement);
+
+                    List<? extends  Element> allFields = allMembers.stream().filter(element -> element.getKind() == ElementKind.FIELD).toList();
+
+                    Map<String, Object> model = new HashMap<>();
+                    model.put("processingEnv", processingEnv);
+                    model.put("typeElement", typeElement);
+                    model.put("packageName", packageName);
+                    model.put("builderClassName", builderClassName);
+                    model.put("className", typeElement.getSimpleName());
+                    model.put("allFields", allFields);
+
+                    Template template =
+                        FreeMarkerConfigurationSingleton.getInstance().getTemplate("builder.ftl");
+                    template.process(model, writer);
+
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (TemplateException e) {
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
+}
+----
+
+Now, the builder class is generated using the FreeMarker template engine.
 
