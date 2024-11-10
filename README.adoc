@@ -1,0 +1,12 @@
+= NSA2 APT Example
+
+This is an example of how to implement your own Java annotation processor tool for code generation.
+
+There are two modules in this project:
+
+* nsa2-apt-processor-example
+* app
+
+For more information, refer to the link below:
+
+* link:./docs/index.adoc[Java Annotation Processor Tool for Code Generation]
